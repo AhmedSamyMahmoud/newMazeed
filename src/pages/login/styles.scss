@@ -1,0 +1,32 @@
+.login-container {
+  height: 100vh;
+  width: 25%;
+  margin: 0 auto;
+  min-width: 300px;
+  padding-top: 100px;
+  .login-container-header {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 24px;
+    .login-container-header-title {
+      font-size: 28px;
+      font-weight: var(--font-weight-semibold);
+      margin: 24px 0 12px 0;
+      color: var(--gray-iron-900);
+    }
+    .login-container-header-description {
+      font-size: 16px;
+      font-weight: var(--font-weight-regular);
+      color: var(--gray-iron-500);
+      margin: 0 0 12px 0;
+    }
+  }
+  .login-container-footer {
+    margin-top: 24px;
+    .login-container-footer-text {
+      font-size: 16px;
+    }
+  }
+}
