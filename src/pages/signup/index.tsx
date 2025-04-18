@@ -3,7 +3,6 @@ import { Formik } from "formik";
 import * as Yup from "yup";
 import Input from "../../components/input";
 import Button from "../../components/button";
-// import "./styles.scss";
 import { Link } from "react-router-dom";
 
 function Signup() {

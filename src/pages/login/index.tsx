@@ -48,8 +48,20 @@ function Login() {
                 placeholder="Enter your password"
                 id="password"
               />
+              <div style={{ textAlign: "right", marginTop: "8px" }}>
+                <Link
+                  to="/forgot-password"
+                  style={{
+                    textDecoration: "none",
+                    fontSize: "14px",
+                    color: "var(--text-primary-light)",
+                  }}
+                >
+                  Forgot Password?
+                </Link>
+              </div>
               <Button
-                style={{ width: "100%", marginTop: "48px" }}
+                style={{ width: "100%", marginTop: "35px" }}
                 variant="secondary"
                 type="submit"
               >

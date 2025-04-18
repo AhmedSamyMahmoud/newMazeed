@@ -1,7 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
-import App from "./App.jsx";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AuthProvider } from "./apis/auth.tsx";
 import Login from "./pages/login/index.tsx";
@@ -10,6 +9,8 @@ import Signup from "./pages/signup/index.tsx";
 import OTPVerify from "./pages/verifyOTP/index.tsx";
 import { ThemeProvider } from "./theme/ThemeProvider.tsx";
 import { ToastProvider } from "./helpers/toasterProvider.tsx";
+import ForgotPassword from "./pages/forgot-password/index.tsx";
+import ResetPassword from "./pages/reset-password/index.tsx";
 
 const router = createBrowserRouter([
   {
@@ -27,6 +28,14 @@ const router = createBrowserRouter([
   {
     path: "/verifyOTP",
     element: <OTPVerify />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPassword />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPassword />,
   },
 ]);
 

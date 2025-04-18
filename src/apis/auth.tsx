@@ -18,12 +18,20 @@ type VerifyOTPType = {
   OTPCode: string;
   purpose: number;
 };
+type ResetPasswordType = {
+  email: string;
+  otpCode: string;
+  newPassword: string;
+  confirmNewPassword: string;
+};
 
 interface ProviderProps {
   token: string;
   login(data: LoginType): void;
   signUp(data: SignUpType): void;
   verifyOTP(data: VerifyOTPType): void;
+  sendResetEmail(email: string): void;
+  resetPassword(data: ResetPasswordType): void;
   logout(): void;
 }
 
@@ -32,6 +40,8 @@ const AuthContext = createContext<ProviderProps>({
   login: () => {},
   signUp: () => {},
   verifyOTP: () => {},
+  sendResetEmail: () => {},
+  resetPassword: () => {},
   logout: () => {},
 });
 
@@ -97,12 +107,55 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log(res);
 
         if (res.status === 200) {
-          // setToken(res.data.token.accessToken);
-          // localStorage.setItem(
-          //   "token",
-          //   JSON.stringify(res.data.token.accessToken)
-          // );
           window.location.href = "/";
+        }
+      })
+      .catch((err) => {
+        showToast({
+          message: err?.response?.data?.message || "Something went wrong",
+          type: "error",
+          title: "Error",
+        });
+      });
+  };
+  const sendResetEmail = async (email: string) => {
+    await axios
+      .post(`${import.meta.env.VITE_API_BASE_URL}/Auth/forgot-password`, {
+        email: email,
+      })
+      .then((res) => {
+        if (res.status === 200) {
+          showToast({
+            message: "Reset password email has been sent!",
+            type: "success",
+            title: "success",
+          });
+          setTimeout(() => {
+            window.location.href = `/reset-password?email=${email}`;
+          }, 1000);
+        }
+      })
+      .catch((err) => {
+        showToast({
+          message: err?.response?.data?.message || "Something went wrong",
+          type: "error",
+          title: "Error",
+        });
+      });
+  };
+  const resetPassword = async (data: ResetPasswordType) => {
+    await axios
+      .post(`${import.meta.env.VITE_API_BASE_URL}/Auth/reset-password`, data)
+      .then((res) => {
+        if (res.status === 200) {
+          showToast({
+            message: "Password reset successfully",
+            type: "success",
+            title: "success",
+          });
+          setTimeout(() => {
+            window.location.href = "/login";
+          }, 1000);
         }
       })
       .catch((err) => {
@@ -119,7 +172,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     window.location.href = "/login";
   };
   return (
-    <AuthContext.Provider value={{ token, login, verifyOTP, signUp, logout }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        login,
+        verifyOTP,
+        sendResetEmail,
+        signUp,
+        logout,
+        resetPassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
