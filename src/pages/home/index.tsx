@@ -30,7 +30,7 @@ function Home() {
           className="social-option"
           onClick={() => {
             window.open(
-              `https://www.facebook.com/v19.0/dialog/oauth?client_id=${userID}&redirect_uri=https://api.mazeed.ai/api/oauth/instagram/callback&scope=instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement&state=baf34b6e-411a-41f3-b4f7-29197f4f865v&response_type=code`,
+              `https://www.facebook.com/v19.0/dialog/oauth?client_id=1135969964508800&redirect_uri=https://api.mazeed.ai/api/oauth/instagram/callback&scope=instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement&state=${userID}&response_type=code`,
               "_blank"
             );
           }}
