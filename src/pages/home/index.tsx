@@ -2,7 +2,6 @@ import React from "react";
 import { useAuth } from "../../apis/auth";
 import { withAuthManager } from "../../HOCs/authManager";
 import "./styles.scss";
-import facebookIcon from "../../assets/Icon/social/facebook.svg";
 import tiktokIcon from "../../assets/Icon/social/tiktok.svg";
 import instagramIcon from "../../assets/Icon/social/instagram.svg";
 import youtubeIcon from "../../assets/Icon/social/youtube.svg";
@@ -13,21 +12,23 @@ function Home() {
   return (
     <div className="home-container">
       <div className="home-container-header">
-        <div style={{ fontSize: "38px", textAlign: "center" }}>mazeed.ai</div>
-        <p className="home-container-header-title">Connect Your Social Media</p>
+        <div className="logo">mazeed.ai</div>
+        <h1 className="home-container-header-title">
+          Connect Your Social Media
+        </h1>
         <p className="home-container-header-description">
-          Choose the platforms you want to connect with
+          Choose the platforms you want to connect with to start managing your
+          social media presence
         </p>
       </div>
-      <div
-        style={{
-          display: "flex",
-          gap: "16px",
-          flexDirection: window.innerWidth < 900 ? "column" : "row",
-        }}
-      >
+
+      <div className="social-grid">
+        <button className="social-option tiktok">
+          <img src={tiktokIcon} alt="TikTok" />
+          Connect with TikTok
+        </button>
         <button
-          className="social-option"
+          className="social-option instagram"
           onClick={() => {
             window.open(
               `https://www.facebook.com/v19.0/dialog/oauth?client_id=1135969964508800&redirect_uri=https://api.mazeed.ai/api/oauth/instagram/callback&scope=instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement&state=${userID}&response_type=code`,
@@ -35,39 +36,16 @@ function Home() {
             );
           }}
         >
-          <img
-            src={facebookIcon}
-            style={{ width: "24px", height: "24px", marginRight: "10px" }}
-            alt="facebook"
-          />
-          Facebook
+          <img src={instagramIcon} alt="Instagram" />
+          Connect with Instagram
         </button>
-        <button className="social-option">
-          <img
-            src={tiktokIcon}
-            style={{ width: "24px", height: "24px", marginRight: "10px" }}
-            alt="tiktok"
-          />
-          TikTok
-        </button>
-        <button className="social-option">
-          <img
-            src={instagramIcon}
-            style={{ width: "24px", height: "24px", marginRight: "10px" }}
-            alt="instagram"
-          />
-          Instagram
-        </button>
-        <button className="social-option">
-          <img
-            src={youtubeIcon}
-            style={{ width: "24px", height: "24px", marginRight: "10px" }}
-            alt="youtube"
-          />
-          YouTube
+        <button className="social-option youtube">
+          <img src={youtubeIcon} alt="YouTube" />
+          Connect with YouTube
         </button>
       </div>
-      <button style={{ marginTop: "40px" }} onClick={() => auth.logout()}>
+
+      <button className="logout-button" onClick={() => auth.logout()}>
         Logout
       </button>
     </div>
