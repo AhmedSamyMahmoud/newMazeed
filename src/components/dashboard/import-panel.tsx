@@ -50,11 +50,11 @@ export function ImportPanel({ onImportSuccess }: ImportPanelProps) {
   const importMutation = useMutation({
     mutationFn: async (data: ImportFormValues) => {
       try {
-        const response = await apiRequest(
-          "GET",
-          `https://api.mazeed.ai/api/Instagram/connect?user_id=${token.userId}`
+        window.open(
+          `https://api.mazeed.ai/api/Instagram/connect?user_id=${token.userId}`,
+          '_blank'
         );
-        return response.json();
+        return { success: true };
       } catch (error) {
         console.error("API error:", error);
         throw error;
