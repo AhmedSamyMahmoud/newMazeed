@@ -23,7 +23,9 @@ function ResetPassword() {
     newPassword: string;
     confirmNewPassword: string;
   }) => {
-    const userEmail = new URLSearchParams(window.location.search)?.get("email");
+    const userEmail = new URLSearchParams(window.location.search)
+      ?.get("email")
+      ?.replace(" ", "+");
     if (userEmail) {
       auth.resetPassword({ ...values, email: userEmail });
     } else {
@@ -87,7 +89,10 @@ function ResetPassword() {
             </form>
             <div className="login-container-footer">
               <div className="login-container-footer-text">
-                Remember your password? <Link to="/login">Log in</Link>
+                Remember your password?{" "}
+                <Link className="text-primary" to="/login">
+                  Log in
+                </Link>
               </div>
             </div>
           </div>

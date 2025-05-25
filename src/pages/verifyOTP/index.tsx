@@ -53,7 +53,10 @@ function VerifyOTP() {
             </form>
             <div className="login-container-footer">
               <div className="login-container-footer-text">
-                Back to login? <Link to="/login">Login</Link>
+                Back to login?{" "}
+                <Link className="text-primary" to="/login">
+                  Login
+                </Link>
               </div>
             </div>
           </div>

@@ -1,15 +1,20 @@
 .login-container {
   height: calc(100vh - 100px);
-  width: 20%;
   margin: 0 auto;
   min-width: 300px;
-  padding-top: 100px;
+  max-width: 350px;
+  padding-top: 50px;
+  .login-container-form {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
   .login-container-header {
     display: flex;
     justify-content: center;
     flex-direction: column;
     align-items: center;
-    margin-bottom: 24px;
+    margin-bottom: 80px;
     .login-container-header-title {
       font-size: 28px;
       font-weight: var(--font-weight-semibold);
@@ -23,10 +28,14 @@
       margin: 0 0 12px 0;
     }
   }
+  .login-container-form-right {
+    width: 50%;
+  }
   .login-container-footer {
-    margin-top: 24px;
+    margin-top: 20px;
+    text-align: center;
     .login-container-footer-text {
-      font-size: 16px;
+      font-size: 14px;
     }
   }
 }

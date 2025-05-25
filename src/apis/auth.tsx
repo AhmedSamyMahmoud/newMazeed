@@ -26,7 +26,7 @@ type ResetPasswordType = {
 };
 
 interface ProviderProps {
-  token: string;
+  token: any;
   login(data: LoginType): void;
   signUp(data: SignUpType): void;
   verifyOTP(data: VerifyOTPType): void;
@@ -36,7 +36,7 @@ interface ProviderProps {
 }
 
 const AuthContext = createContext<ProviderProps>({
-  token: "",
+  token: {},
   login: () => {},
   signUp: () => {},
   verifyOTP: () => {},

@@ -57,7 +57,10 @@ function ForgotPassword() {
             </form>
             <div className="login-container-footer">
               <div className="login-container-footer-text">
-                Remember your password? <Link to="/login">Log in</Link>
+                Remember your password?{" "}
+                <Link className="text-primary" to="/login">
+                  Log in
+                </Link>
               </div>
             </div>
           </div>

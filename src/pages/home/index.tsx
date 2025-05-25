@@ -1,55 +1,75 @@
-import React from "react";
-import { useAuth } from "../../apis/auth";
+import { useState } from "react";
+import { Header } from "../../components/header";
+import { Footer } from "../../components/footer";
+// import { TransformationQueue } from "@/components/dashboard/transformation-queue";
+import { PerformanceInsights } from "../../components/dashboard/performance-insights";
+import { TransformationWorkflow } from "../../components/dashboard/transformation-workflow";
 import { withAuthManager } from "../../HOCs/authManager";
-import "./styles.scss";
-import tiktokIcon from "../../assets/Icon/social/tiktok.svg";
-import instagramIcon from "../../assets/Icon/social/instagram.svg";
-import youtubeIcon from "../../assets/Icon/social/youtube.svg";
 
-function Home() {
-  const auth = useAuth();
-  const userID = JSON.parse(localStorage.getItem("token") || "{}")?.userId;
+const Home = () => {
+  const [contentImported, setContentImported] = useState(false);
+  const [contentTransformed, setContentTransformed] = useState(false);
+  const [selectedTransformationId, setSelectedTransformationId] = useState<
+    number | undefined
+  >(undefined);
+
+  const handleImportSuccess = () => {
+    setContentImported(true);
+  };
+
+  const handleTransformSuccess = (transformationId?: number) => {
+    setContentTransformed(true);
+
+    // If a transformation ID is provided, select it for display
+    if (transformationId) {
+      setSelectedTransformationId(transformationId);
+    }
+  };
+
+  const handleSelectTransformation = (transformationId: number) => {
+    setSelectedTransformationId(transformationId);
+    setContentTransformed(true);
+  };
+
+  const handleReset = () => {
+    setSelectedTransformationId(undefined);
+    setContentTransformed(false);
+  };
+
   return (
-    <div className="home-container">
-      <div className="home-container-header">
-        <div className="logo">mazeed.ai</div>
-        <h1 className="home-container-header-title">
-          Connect Your Social Media
-        </h1>
-        <p className="home-container-header-description">
-          Choose the platforms you want to connect with to start managing your
-          social media presence
-        </p>
-      </div>
+    <div className="min-h-screen flex flex-col bg-white">
+      <Header />
 
-      <div className="social-grid">
-        <button className="social-option tiktok">
-          <img src={tiktokIcon} alt="TikTok" />
-          Connect with TikTok
-        </button>
-        <button
-          className="social-option instagram"
-          onClick={() => {
-            window.open(
-              `https://www.facebook.com/v19.0/dialog/oauth?client_id=1135969964508800&redirect_uri=https://api.mazeed.ai/api/oauth/instagram/callback&scope=instagram_basic,instagram_manage_insights,pages_show_list,pages_read_engagement&state=${userID}&response_type=code`,
-              "_blank"
-            );
-          }}
-        >
-          <img src={instagramIcon} alt="Instagram" />
-          Connect with Instagram
-        </button>
-        <button className="social-option youtube">
-          <img src={youtubeIcon} alt="YouTube" />
-          Connect with YouTube
-        </button>
-      </div>
+      <main className="flex-grow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+              Content Transformer
+            </h1>
+            <p className="max-w-2xl mx-auto text-gray-600 text-lg">
+              Transform your best-performing content across platforms to
+              maximize revenue without extra creation work.
+            </p>
+          </div>
 
-      <button className="logout-button" onClick={() => auth.logout()}>
-        Logout
-      </button>
+          <TransformationWorkflow
+            onImportSuccess={handleImportSuccess}
+            onTransformSuccess={handleTransformSuccess}
+            onSelectTransformation={handleSelectTransformation}
+            selectedTransformationId={selectedTransformationId}
+            onReset={handleReset}
+          />
+
+            <div className="space-y-8 mt-12">
+            {/* <TransformationQueue onSelectTransformation={handleSelectTransformation} /> */}
+            <PerformanceInsights />
+          </div>
+        </div>
+      </main>
+
+      <Footer />
     </div>
   );
-}
+};
 
 export default withAuthManager(Home);

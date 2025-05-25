@@ -1,6 +1,8 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AuthProvider } from "./apis/auth.tsx";
 import Login from "./pages/login/index.tsx";
@@ -41,12 +43,14 @@ const router = createBrowserRouter([
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
-    <ThemeProvider>
-      <ToastProvider>
-        <AuthProvider>
-          <RouterProvider router={router} />
-        </AuthProvider>
-      </ToastProvider>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider>
+        <ToastProvider>
+          <AuthProvider>
+            <RouterProvider router={router} />
+          </AuthProvider>
+        </ToastProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
   </StrictMode>
 );

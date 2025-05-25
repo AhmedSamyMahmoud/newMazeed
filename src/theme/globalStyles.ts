@@ -8,7 +8,6 @@ export const GlobalStyle = createGlobalStyle<{ theme: Theme }>`
   :root {
     --bg-primary: ${({ theme }) => theme.colors["bg-primary-light"]};
     color: ${({ theme }) => theme.colors["text-primary-light"]};
-    --border-color: ${({ theme }) => theme.colors["border-primary-light"]};
   }
 
   [data-theme="dark"] {
@@ -22,16 +21,10 @@ export const GlobalStyle = createGlobalStyle<{ theme: Theme }>`
     padding: 0;
   }
 
-  * {
-    border-color: var(--border-color);
-  }
-
   input, select, textarea, button {
     border: 1px solid ${({ theme }) => theme.colors["border-primary-light"]};
     border-radius: ${({ theme }) => theme.borderRadius["radius-md"]};
-    font-size: ${({ theme }) => theme.fontSizes["text-sm"]};
     line-height: ${({ theme }) => theme.lineHeights["text-sm"]};
-    font-weight: ${({ theme }) => theme.fontWeights["semibold"]};
   }
 
   [data-theme="dark"] input,
@@ -40,7 +33,6 @@ export const GlobalStyle = createGlobalStyle<{ theme: Theme }>`
   [data-theme="dark"] button {
     border: 2px solid ${({ theme }) => theme.colors["border-primary-dark"]};
     border-radius: ${({ theme }) => theme.borderRadius["radius-md"]};
-    font-size: ${({ theme }) => theme.fontSizes["text-sm"]};
     line-height: ${({ theme }) => theme.lineHeights["text-sm"]};
     font-weight: ${({ theme }) => theme.fontWeights["semibold"]};
   }

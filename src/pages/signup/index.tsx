@@ -111,7 +111,10 @@ function Signup() {
             </form>
             <div className="login-container-footer">
               <div className="login-container-footer-text">
-                Already have an account? <Link to="/login">Log in</Link>
+                Already have an account?{" "}
+                <Link className="text-primary" to="/login">
+                  Log in
+                </Link>
               </div>
             </div>
           </div>
