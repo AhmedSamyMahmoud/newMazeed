@@ -7,7 +7,7 @@ import { TransformationPanel } from "./transformation-panel";
 import { PreviewPanel } from "./preview-panel";
 import { SiInstagram, SiYoutube, SiTiktok } from "react-icons/si";
 import { ArrowRight, Check } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface Transformation {
   id: number;
@@ -41,9 +41,9 @@ export function TransformationWorkflow({
   onReset
 }: TransformationWorkflowProps) {
   const [activeStep, setActiveStep] = useState(1);
-  const [importDone, setImportDone] = useState(false);
+  const [lastCompletedStep, setLastCompletedStep] = useState(0);
   const [selectedContentIds, setSelectedContentIds] = useState<number[]>([]);
-  
+  const reelsStr = localStorage.getItem("instagramReels");
   // Custom reset handler that will go back to content selection (step 2)
   const handleResetAndGoBack = () => {
     // First call the parent's onReset to clear the transformation selection
@@ -63,6 +63,38 @@ export function TransformationWorkflow({
     // refetchInterval: 1000 // Check for updates every second to make progress updates more responsive
   });
   
+  // Fetch reels from React Query store
+  const { data: reels = [] } = useQuery<any[]>({
+    queryKey: ['/api/content'],
+  });
+  
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    // Always sync reels from localStorage to React Query
+    if (reelsStr) {
+      try {
+        const reels = JSON.parse(reelsStr);
+        if (Array.isArray(reels) && reels.length > 0) {
+          queryClient.setQueryData(["/api/content"], reels);
+        }
+      } catch (e) {
+        // Ignore parse errors
+      }
+    }
+
+    // Then handle step logic
+    const selectedContentIds = localStorage.getItem("selectedContentIds");
+    if (selectedContentIds) {
+      setSelectedContentIds(JSON.parse(selectedContentIds));
+      setLastCompletedStep(2);
+      setActiveStep(3);
+    } else if (reelsStr) {
+      setLastCompletedStep(1);
+      setActiveStep(2);
+    }
+  }, []);
+
   // Auto-select the latest transformation (in-progress or completed) for preview if none is selected
   useEffect(() => {
     if (activeStep === 4 && !selectedTransformationId && transformations.length > 0) {
@@ -85,7 +117,8 @@ export function TransformationWorkflow({
   }, [transformations, activeStep, selectedTransformationId, onSelectTransformation]);
   
   const handleStepClick = (step: number) => {
-    if (step <= activeStep) {
+    // Otherwise, only allow going back to previous steps
+    if (step <= activeStep ||  lastCompletedStep + 1 >= step) {
       setActiveStep(step);
     }
   };
@@ -97,12 +130,13 @@ export function TransformationWorkflow({
   };
   
   const handleImportSuccess = () => {
-    setImportDone(true);
+    setLastCompletedStep(1);
     onImportSuccess();
     handleContinue(); // Move to content selection step
   };
   
   const handleContentSelection = (selectedIds: number[]) => {
+    localStorage.setItem("selectedContentIds", JSON.stringify(selectedIds));
     setSelectedContentIds(selectedIds);
     handleContinue(); // Move directly to platform selection step
   };
@@ -131,7 +165,7 @@ export function TransformationWorkflow({
               className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-colors ${
                 step === activeStep 
                   ? 'bg-[#FF7846] text-white border-[#FF7846]' 
-                  : step < activeStep 
+                  : step < activeStep || lastCompletedStep + 1 >= step
                     ? 'bg-white text-[#FF7846] border-[#FF7846]' 
                     : 'bg-white text-gray-400 border-gray-200'
               }`}
@@ -140,7 +174,7 @@ export function TransformationWorkflow({
             </div>
             <span 
               className={`mt-2 text-sm font-medium ${
-                step <= activeStep ? 'text-gray-900' : 'text-gray-400'
+                step <= activeStep || lastCompletedStep + 1 >= step ? 'text-gray-900' : 'text-gray-400'
               }`}
             >
               {step === 1 ? 'Import' : 

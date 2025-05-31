@@ -9,13 +9,19 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SiYoutube, SiTiktok } from "react-icons/si";
+import { apiRequest } from "@/lib/queryClient";
 
 interface ContentItem {
-  id: number;
-  title: string;
-  thumbnailUrl: string;
-  viewCount: number;
-  createdAt: string;
+  Caption: string;
+  CommentCount: number;
+  DurationInSeconds: number;
+  Id: number;
+  LikeCount: number;
+  MediaType: string;
+  MediaUrl: string;
+  PlayCount: number;
+  PublishedAt: string;
+  ThumbnailUrl: string;
 }
 
 interface TransformationOptions {
@@ -59,69 +65,76 @@ export function TransformationPanel({ onTransformSuccess, selectedDestination, s
   });
 
   // Fetch content items from API
-  const { data: contentItems = [], isLoading, isError } = useQuery<ContentItem[]>({
+  const { data: contentItems = [], isLoading } = useQuery<ContentItem[]>({
     queryKey: ['/api/content'],
-    staleTime: 60000, // 1 minute
+    staleTime: 60000,
   });
 
   // Create transformation mutation
-  // const transformMutation = useMutation({
-  //   mutationFn: async (data: { contentIds: number[], options: TransformationOptions }) => {
-  //     // For each content ID, create a transformation
-  //     const promises = data.contentIds.map(contentId => 
-  //       apiRequest("POST", "/api/transformations", {
-  //         contentId,
-  //         targetPlatform,
-  //         transformationOptions: data.options,
-  //         status: "queued",
-  //         createdAt: new Date()
-  //       })
-  //     );
+  const transformMutation = useMutation({
+    mutationFn: async (data: { contentIds: number[], options: TransformationOptions }) => {
+      console.log(data.contentIds);
+      // For each content ID, create a transformation
+      const promises = data.contentIds.map(contentId => {
+        const contentItem = contentItems.find(item => item.Id === contentId);
+        return apiRequest(
+          "POST",
+          `${import.meta.env.VITE_API_BASE_URL}/MediaTransformation`,
+          {
+            mediaUrl: contentItem?.MediaUrl,
+            thumbnailUrl: contentItem?.ThumbnailUrl,
+            mediaType: contentItem?.MediaType,
+            platformMediaId: contentItem?.Id,
+            caption: contentItem?.Caption
+          }
+        );
+      });
       
-  //     console.log("Creating transformations for content IDs:", data.contentIds);
+      // Resolve all promises and get their JSON response with the created transformation data
+      const responses = await Promise.all(promises);
+      const transformations = await Promise.all(responses);
       
-  //     // Resolve all promises and get their JSON response with the created transformation data
-  //     const responses = await Promise.all(promises);
-  //     const transformations = await Promise.all(responses.map(res => res.json()));
+      console.log("Created transformations:", transformations);
+      return transformations;
+    },
+    onSuccess: (transformations) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/transformations'] });
       
-  //     console.log("Created transformations:", transformations);
-  //     return transformations;
-  //   },
-  //   onSuccess: (transformations) => {
-  //     queryClient.invalidateQueries({ queryKey: ['/api/transformations'] });
-      
-  //     // Get the last created transformation ID for preview
-  //     if (transformations && transformations.length > 0) {
-  //       const lastTransformation = transformations[transformations.length - 1];
-  //       console.log("Using transformation for preview:", lastTransformation);
+      // Get the last created transformation ID for preview
+      if (transformations && transformations.length > 0) {
+        const lastTransformation = transformations[transformations.length - 1];
+        console.log("Using transformation for preview:", lastTransformation);
         
-  //       toast({
-  //         title: "Transformation started",
-  //         description: "Your content is being transformed. You can view progress in the preview panel.",
-  //       });
+        showToast({
+          title: "Transformation started",
+          message: "Your content is being transformed. You can view progress in the preview panel.",
+          type: "success",
+        });
         
-  //       // Pass the latest transformation ID to the success handler
-  //       if (lastTransformation && lastTransformation.id) {
-  //         console.log("Passing transformation ID to success handler:", lastTransformation.id);
-  //         onTransformSuccess(lastTransformation.id);
-  //       } else {
-  //         console.log("No transformation ID found, calling success handler without ID");
-  //         onTransformSuccess();
-  //       }
-  //     } else {
-  //       console.log("No transformations created, calling success handler without ID");
-  //       onTransformSuccess();
-  //     }
-  //   },
-  //   onError: (error) => {
-  //     console.error("Transformation error:", error);
-  //     toast({
-  //       title: "Transformation failed",
-  //       description: "Failed to start transformation. Please try again.",
-  //       variant: "destructive",
-  //     });
-  //   },
-  // });
+        // Pass the latest transformation ID to the success handler
+        // if (lastTransformation && lastTransformation.id) {
+        //   console.log("Passing transformation ID to success handler:", lastTransformation.id);
+        //   onTransformSuccess(lastTransformation.id);
+        // } else {
+        //   console.log("No transformation ID found, calling success handler without ID");
+        //   onTransformSuccess();
+        // }
+      } else {
+        console.log("No transformations created, calling success handler without ID");
+        onTransformSuccess();
+      }
+    },
+    onError: (error) => {
+      console.error("Transformation error:", error);
+      showToast({
+        title: "Transformation failed",
+        message: "Failed to start transformation. Please try again.",
+        type: "error",
+      });
+    },
+  });
+// console.log(isError);
+console.log(contentItems);
 
   const handleToggleItem = (id: number) => {
     setSelectedItems(prev => 
@@ -131,21 +144,21 @@ export function TransformationPanel({ onTransformSuccess, selectedDestination, s
     );
   };
 
-  // const handleTransform = () => {
-  //   if (selectedItems.length === 0) {
-  //     showToast({
-  //       title: "No content selected",
-  //       message: "Please select at least one content item to transform.",
-  //       type: "error",
-  //     });
-  //     return;
-  //   }
+  const handleTransform = () => {
+    if (selectedItems.length === 0) {
+      showToast({
+        title: "No content selected",
+        message: "Please select at least one content item to transform.",
+        type: "error",
+      });
+      return;
+    }
 
-  //   transformMutation.mutate({
-  //     contentIds: selectedItems,
-  //     options: transformationOptions
-  //   });
-  // };
+    transformMutation.mutate({
+      contentIds: selectedItems,
+      options: transformationOptions
+    });
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -180,14 +193,6 @@ export function TransformationPanel({ onTransformSuccess, selectedDestination, s
           <div className="flex items-center justify-center py-10">
             <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
           </div>
-        ) : isError ? (
-          <div className="text-center py-10">
-            <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-10 w-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">Error loading content</h3>
-            <p className="mt-1 text-sm text-gray-500">Please try again or import new content.</p>
-          </div>
         ) : contentItems?.length === 0 ? (
           <div className="text-center py-12">
             <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -199,14 +204,14 @@ export function TransformationPanel({ onTransformSuccess, selectedDestination, s
         ) : (
           <div>
             {contentItems
-              .filter(item => !selectedContentIds?.length || selectedContentIds.includes(item.id))
+              .filter(item => !selectedContentIds?.length || selectedContentIds.includes(item.Id))
               .map((item: ContentItem) => (
-              <div key={item.id} className="flex items-center justify-between py-3 border-b border-gray-200">
+              <div key={item.Id} className="flex items-center justify-between py-3 border-b border-gray-200">
                 <div className="flex items-center">
                   <div className="h-10 w-10 flex-shrink-0 bg-gray-200 rounded overflow-hidden">
                     <img 
-                      src={item.thumbnailUrl} 
-                      alt={item.title} 
+                      src={item.ThumbnailUrl} 
+                      alt={item.Caption} 
                       className="h-full w-full object-cover"
                       onError={(e) => {
                         // Fallback to placeholder if image fails to load
@@ -215,15 +220,15 @@ export function TransformationPanel({ onTransformSuccess, selectedDestination, s
                     />
                   </div>
                   <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
-                    <p className="text-xs text-gray-500">{formatViewCount(item.viewCount)} views • {formatDate(item.createdAt)}</p>
+                    <p className="text-sm font-medium text-gray-900 truncate">{item.Caption}</p>
+                    <p className="text-xs text-gray-500">{formatViewCount(item.PlayCount)} views • {formatDate(item.PublishedAt)}</p>
                   </div>
                 </div>
                 <div className="flex items-center">
                   <Checkbox 
-                    id={`item-${item.id}`}
-                    checked={selectedItems.includes(item.id)}
-                    onCheckedChange={() => handleToggleItem(item.id)}
+                    id={`item-${item.Id}`}
+                    checked={selectedItems.includes(item.Id)}
+                    onCheckedChange={() => handleToggleItem(item.Id)}
                   />
                 </div>
               </div>
@@ -340,21 +345,21 @@ export function TransformationPanel({ onTransformSuccess, selectedDestination, s
               </div>
 
               <Button
-                // onClick={handleTransform}
+                onClick={handleTransform}
                 className="mt-5 w-full bg-[#FF7846] hover:bg-[#FF5A2D]"
-                // disabled={
-                //   transformMutation.isPending || 
-                //   selectedItems.length === 0
-                // }
+                disabled={
+                  transformMutation.isPending || 
+                  selectedItems.length === 0
+                }
               >
-                {/* {transformMutation.isPending ? (
+                {transformMutation.isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Transforming...
                   </>
                 ) : (
                   'Transform Selected Content'
-                )} */}
+                )}
               </Button>
             </div>
           </div>

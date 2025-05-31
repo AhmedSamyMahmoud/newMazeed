@@ -4,22 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SiInstagram } from "react-icons/si";
 import { ExternalLink, Clock, Heart, MessageCircle, ArrowRight, Filter, X } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { useQuery } from "@tanstack/react-query";
+import { useMemo } from "react";
 
 interface ContentItem {
-  id: number;
-  title: string;
-  thumbnailUrl: string;
-  contentUrl: string;
-  duration: number;
-  viewCount: number;
-  likes: number;
-  comments: number;
-  date: string;
-  type: string;
+  Caption: string;
+  CommentCount: number;
+  DurationInSeconds: number;
+  Id: number;
+  LikeCount: number;
+  MediaType: string;
+  MediaUrl: string;
+  PlayCount: number;
+  PublishedAt: string;
+  ThumbnailUrl: string;
 }
 
 interface ContentSelectionProps {
@@ -33,128 +34,23 @@ export function ContentSelection({ onContinue }: ContentSelectionProps) {
   const [filterContentType, setFilterContentType] = useState("all");
   const [filterPerformance, setFilterPerformance] = useState("all");
   
-  const mockContent: ContentItem[] = [
-    {
-      id: 1,
-      title: "Summer travel highlights 2023",
-      thumbnailUrl: "https://source.unsplash.com/random/600x800?travel",
-      contentUrl: "https://example.com/content1",
-      duration: 45,
-      viewCount: 1200000,
-      likes: 87500,
-      comments: 2300,
-      date: "2023-08-15",
-      type: "Reel"
-    },
-    {
-      id: 2,
-      title: "Morning workout routine with ocean view",
-      thumbnailUrl: "https://source.unsplash.com/random/600x800?workout",
-      contentUrl: "https://example.com/content2",
-      duration: 32,
-      viewCount: 845000,
-      likes: 62400,
-      comments: 1850,
-      date: "2023-09-02",
-      type: "Reel"
-    },
-    {
-      id: 3,
-      title: "Making homemade pasta from scratch",
-      thumbnailUrl: "https://source.unsplash.com/random/600x800?pasta",
-      contentUrl: "https://example.com/content3",
-      duration: 58,
-      viewCount: 1540000,
-      likes: 103200,
-      comments: 3700,
-      date: "2023-07-22",
-      type: "Reel"
-    },
-    {
-      id: 4,
-      title: "Sunset walk on the beach",
-      thumbnailUrl: "https://source.unsplash.com/random/600x800?sunset",
-      contentUrl: "https://example.com/content4",
-      duration: 28,
-      viewCount: 920000,
-      likes: 45300,
-      comments: 1280,
-      date: "2023-08-30",
-      type: "Reel"
-    },
-    {
-      id: 5,
-      title: "Weekend city exploration vlog",
-      thumbnailUrl: "https://source.unsplash.com/random/600x800?city",
-      contentUrl: "https://example.com/content5",
-      duration: 52,
-      viewCount: 678000,
-      likes: 34200,
-      comments: 950,
-      date: "2023-07-15",
-      type: "Reel"
-    },
-    {
-      id: 6,
-      title: "Easy 5-minute breakfast ideas",
-      thumbnailUrl: "https://source.unsplash.com/random/600x800?breakfast",
-      contentUrl: "https://example.com/content6",
-      duration: 37,
-      viewCount: 1320000,
-      likes: 95600,
-      comments: 4200,
-      date: "2023-08-05",
-      type: "Reel"
-    },
-    {
-      id: 7,
-      title: "Apartment plant tour and care tips",
-      thumbnailUrl: "https://source.unsplash.com/random/600x800?plants",
-      contentUrl: "https://example.com/content7",
-      duration: 62,
-      viewCount: 580000,
-      likes: 42300,
-      comments: 1560,
-      date: "2023-06-28",
-      type: "Reel"
-    },
-    {
-      id: 8,
-      title: "My minimalist packing routine",
-      thumbnailUrl: "https://source.unsplash.com/random/600x800?packing",
-      contentUrl: "https://example.com/content8",
-      duration: 41,
-      viewCount: 890000,
-      likes: 63400,
-      comments: 2100,
-      date: "2023-06-10",
-      type: "Reel"
-    },
-    {
-      id: 9,
-      title: "How I edit my Instagram photos",
-      thumbnailUrl: "https://source.unsplash.com/random/600x800?editing",
-      contentUrl: "https://example.com/content9",
-      duration: 48,
-      viewCount: 1450000,
-      likes: 108700,
-      comments: 5300,
-      date: "2023-07-03",
-      type: "Reel"
-    },
-    {
-      id: 10,
-      title: "Beach day essentials in my bag",
-      thumbnailUrl: "https://source.unsplash.com/random/600x800?beach",
-      contentUrl: "https://example.com/content10",
-      duration: 36,
-      viewCount: 785000,
-      likes: 56800,
-      comments: 1850,
-      date: "2023-08-21",
-      type: "Reel"
+  // Get reels from React Query or localStorage
+  const { data: queryReels } = useQuery<any[]>({
+    queryKey: ['/api/content'],
+  });
+  const reels = useMemo(() => {
+    if (Array.isArray(queryReels) && queryReels.length > 0) {
+      return queryReels;
     }
-  ];
+    try {
+      const local = localStorage.getItem("instagramReels");
+      if (local) {
+        const parsed = JSON.parse(local);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  }, [queryReels]);
 
   const handleToggleItem = (id: number) => {
     setSelectedItems(prev => 
@@ -165,10 +61,10 @@ export function ContentSelection({ onContinue }: ContentSelectionProps) {
   };
   
   const handleSelectAll = () => {
-    if (selectedItems.length === mockContent.length) {
+    if (selectedItems.length === reels.length) {
       setSelectedItems([]);
     } else {
-      setSelectedItems(mockContent.map(item => item.id));
+      setSelectedItems(reels.map(item => item.Id));
     }
   };
 
@@ -210,20 +106,20 @@ export function ContentSelection({ onContinue }: ContentSelectionProps) {
       };
       
       if (filterDateRange === "30days") {
-        filtered = filtered.filter(item => new Date(item.date) >= monthsAgo(1));
+        filtered = filtered.filter(item => new Date(item.PublishedAt) >= monthsAgo(1));
       } else if (filterDateRange === "90days") {
-        filtered = filtered.filter(item => new Date(item.date) >= monthsAgo(3));
+        filtered = filtered.filter(item => new Date(item.PublishedAt) >= monthsAgo(3));
       } else if (filterDateRange === "6months") {
-        filtered = filtered.filter(item => new Date(item.date) >= monthsAgo(6));
+        filtered = filtered.filter(item => new Date(item.PublishedAt) >= monthsAgo(6));
       } else if (filterDateRange === "year") {
-        filtered = filtered.filter(item => new Date(item.date) >= monthsAgo(12));
+        filtered = filtered.filter(item => new Date(item.PublishedAt) >= monthsAgo(12));
       }
     }
     
     // Content type filter
     if (filterContentType !== "all") {
       filtered = filtered.filter(item => 
-        filterContentType === "reels" ? item.type === "Reel" : item.type !== "Reel"
+        filterContentType === "reels" ? item.MediaType === "Reel" : item.MediaType !== "Reel"
       );
     }
     
@@ -231,11 +127,11 @@ export function ContentSelection({ onContinue }: ContentSelectionProps) {
     if (filterPerformance !== "all") {
       filtered = filtered.filter(item => {
         if (filterPerformance === "high") {
-          return item.viewCount > 1000000;
+          return item.PlayCount > 1000000;
         } else if (filterPerformance === "medium") {
-          return item.viewCount > 500000 && item.viewCount <= 1000000;
+          return item.PlayCount > 500000 && item.PlayCount <= 1000000;
         } else {
-          return item.viewCount <= 500000;
+          return item.PlayCount <= 500000;
         }
       });
     }
@@ -244,7 +140,7 @@ export function ContentSelection({ onContinue }: ContentSelectionProps) {
   };
 
   // Get filtered content
-  const filteredContent = filterContent(mockContent);
+  const filteredContent = filterContent(reels);
 
   return (
     <div className="w-full">
@@ -255,7 +151,7 @@ export function ContentSelection({ onContinue }: ContentSelectionProps) {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Select Instagram Content</h3>
-            <p className="text-sm text-gray-500">Choose reels to transform</p>
+            <p className="text-sm text-gray-500">Choose reels or videosto transform</p>
           </div>
         </div>
         
@@ -450,47 +346,47 @@ export function ContentSelection({ onContinue }: ContentSelectionProps) {
         ) : (
           filteredContent.map(item => (
             <Card 
-              key={item.id} 
+              key={item.Id} 
               className={`overflow-hidden cursor-pointer transition-shadow hover:shadow-md ${
-                selectedItems.includes(item.id) ? 'border-[#FF7846] ring-1 ring-[#FF7846]' : 'border-gray-200'
+                selectedItems.includes(item.Id) ? 'border-[#FF7846] ring-1 ring-[#FF7846]' : 'border-gray-200'
               }`}
-              onClick={() => handleToggleItem(item.id)}
+              onClick={() => handleToggleItem(item.Id)}
             >
               <CardContent className="p-0 flex">
                 <div className="w-1/3 relative">
                   <img 
-                    src={item.thumbnailUrl} 
-                    alt={item.title}
+                    src={item.ThumbnailUrl} 
+                    alt={item.Caption}
                     className="w-full h-full object-cover aspect-[3/4]" 
                   />
                   <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
-                    {item.type}
+                    {item.MediaType.toLowerCase()}
                   </div>
                   <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-full flex items-center">
-                    <Clock className="w-3 h-3 mr-1" /> {Math.floor(item.duration / 60)}:{(item.duration % 60).toString().padStart(2, '0')}
+                    <Clock className="w-3 h-3 mr-1" /> {Math.floor(item.DurationInSeconds / 60)}:{(item.DurationInSeconds % 60).toString().padStart(2, '0')}
                   </div>
                 </div>
                 <div className="w-2/3 p-4 flex flex-col justify-between">
                   <div>
                     <div className="flex items-start justify-between mb-2">
-                      <h4 className="text-base font-medium text-gray-900 line-clamp-2 mr-2">{item.title}</h4>
+                      <h4 className="text-base font-medium text-gray-900 line-clamp-2 mr-2">{item.Caption}</h4>
                       <Checkbox 
-                        checked={selectedItems.includes(item.id)}
+                        checked={selectedItems.includes(item.Id)}
                         className="h-5 w-5 border-2 border-gray-300 data-[state=checked]:border-[#FF7846] data-[state=checked]:bg-[#FF7846]"
                       />
                     </div>
-                    <p className="text-xs text-gray-500 mb-3">{new Date(item.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                    <p className="text-xs text-gray-500 mb-3">{new Date(item.PublishedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</p>
                   </div>
                   <div>
                     <div className="flex items-center text-xs text-gray-600 mb-1">
                       <span className="flex items-center mr-4">
-                        <Heart className="w-3 h-3 mr-1" /> {formatNumber(item.likes)}
+                        <Heart className="w-3 h-3 mr-1" /> {formatNumber(item.LikeCount)}
                       </span>
                       <span className="flex items-center mr-4">
-                        <MessageCircle className="w-3 h-3 mr-1" /> {formatNumber(item.comments)}
+                        <MessageCircle className="w-3 h-3 mr-1" /> {formatNumber(item.CommentCount)}
                       </span>
                       <span className="flex items-center">
-                        <ExternalLink className="w-3 h-3 mr-1" /> {formatNumber(item.viewCount)}
+                        <ExternalLink className="w-3 h-3 mr-1" /> {formatNumber(item.PlayCount)}
                       </span>
                     </div>
                     <div className="flex items-center justify-between">
@@ -498,7 +394,7 @@ export function ContentSelection({ onContinue }: ContentSelectionProps) {
                         High Performance
                       </div>
                       <a 
-                        href={item.contentUrl} 
+                        href={item.MediaUrl} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-xs text-gray-500 hover:text-[#FF7846] flex items-center"
@@ -516,9 +412,7 @@ export function ContentSelection({ onContinue }: ContentSelectionProps) {
       </div>
       
       <div className="flex justify-between">
-        <Button variant="outline" onClick={() => window.history.back()}>
-          Back
-        </Button>
+        <div></div>
         <Button 
           className="bg-[#FF7846] hover:bg-[#FF5A2D]"
           disabled={selectedItems.length === 0}

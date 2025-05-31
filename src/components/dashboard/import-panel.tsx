@@ -1,21 +1,14 @@
-import { useState, useContext } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useForm } from "react-hook-form";
 import { ToasterContext } from "../../helpers/toasterProvider";
-import { apiRequest } from "@/lib/queryClient";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent } from "../ui/card";
 import { Button } from "../ui/button";
-import { Label } from "../ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import { Loader2, Import } from "lucide-react";
+import { Select, SelectTrigger, SelectValue } from "../ui/select";
+import { Loader2 } from "lucide-react";
 import { SiInstagram } from "react-icons/si";
 import { useAuth } from "../../apis/auth";
+import { navigate } from "wouter/use-browser-location";
 
 interface ImportFormValues {
   contentType: string;
@@ -33,12 +26,7 @@ export function ImportPanel({ onImportSuccess }: ImportPanelProps) {
   const queryClient = useQueryClient();
   const [importing, setImporting] = useState(false);
   const { token } = useAuth();
-  const {
-    handleSubmit,
-    formState: { errors },
-    setValue,
-    watch,
-  } = useForm<ImportFormValues>({
+  const { setValue, watch } = useForm<ImportFormValues>({
     defaultValues: {
       contentType: "Reels",
       dateRange: "Last 30 days",
@@ -47,49 +35,105 @@ export function ImportPanel({ onImportSuccess }: ImportPanelProps) {
     },
   });
 
-  const importMutation = useMutation({
-    mutationFn: async (data: ImportFormValues) => {
-      try {
-        window.open(
-          `https://api.mazeed.ai/api/Instagram/connect?user_id=${token.userId}`,
-          '_blank'
-        );
-        return { success: true };
-      } catch (error) {
-        console.error("API error:", error);
-        throw error;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/content"] });
-      showToast({
-        title: "Content imported successfully",
-        message:
-          "Your Instagram content has been imported and is ready for transformation.",
-        type: "success",
-      });
-      onImportSuccess();
-      setImporting(false);
-    },
-    onError: (error) => {
-      console.error("Import error:", error);
-      showToast({
-        title: "Import failed",
-        message: "Failed to import content from Instagram. Please try again.",
-        type: "error",
-      });
-      setImporting(false);
-    },
-  });
-
-  const onSubmit = (data: ImportFormValues) => {
-    setImporting(true);
-    importMutation.mutate(data);
-  };
-
   // Handle select changes
   const handleSelectChange = (name: keyof ImportFormValues, value: string) => {
     setValue(name, value);
+  };
+
+  useEffect(() => {
+    // Check if we already have valid data
+    try {
+      const storedData = localStorage.getItem("instagram_auth_data");
+      if (storedData) {
+        const parsedData = JSON.parse(storedData);
+        if (
+          parsedData.reels &&
+          Array.isArray(parsedData.reels) &&
+          parsedData.reels.length > 0
+        ) {
+          return;
+        }
+      }
+    } catch (err) {
+      console.error("Error checking stored data:", err);
+    }
+
+    // Listen for messages from the Instagram auth popup
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        let data = event.data;
+        if (typeof data === "string") {
+          data = JSON.parse(data);
+        }
+
+        if (data.type === "instagram-auth-success") {
+          // Extract data from the message
+          const authData = data.data || data;
+
+          if (!authData.reels || !Array.isArray(authData.reels)) {
+            throw new Error("Invalid reels data format");
+          }
+
+          // Store the complete auth data
+          localStorage.setItem("instagram_auth_data", JSON.stringify(authData));
+          localStorage.setItem(
+            "instagramReels",
+            JSON.stringify(authData.reels)
+          );
+          localStorage.setItem(
+            "instagramAccountIds",
+            JSON.stringify(authData.accountIds || [])
+          );
+
+          // Store reels in React Query store
+          queryClient.setQueryData(["/api/content"], authData.reels);
+
+          // Call onImportSuccess, then navigate after a short delay
+          onImportSuccess();
+          setTimeout(() => {
+            navigate("/dashboard");
+          }, 100);
+        } else if (data.type === "instagram-auth-error") {
+          throw new Error(data.data?.message || "Authentication failed");
+        }
+      } catch (err) {
+        console.error("Error processing auth message:", err);
+      }
+    };
+
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, [navigate]);
+
+  const handleConnectInstagram = () => {
+    try {
+      const width = 600;
+      const height = 700;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+
+      const popup = window.open(
+        `https://api.mazeed.ai/api/Instagram/connect?user_id=${token.userId}`,
+        "Instagram Authentication",
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+
+      // Check if popup was blocked
+      if (!popup || popup.closed || typeof popup.closed === "undefined") {
+        throw new Error(
+          "Popup was blocked. Please allow popups for this site."
+        );
+      }
+
+      // Start checking if popup is closed
+      const checkPopupClosed = setInterval(() => {
+        if (!popup || popup.closed) {
+          clearInterval(checkPopupClosed);
+        }
+      }, 1000);
+    } catch (err) {
+      console.error("Error opening popup:", err);
+    }
   };
 
   return (
@@ -138,7 +182,7 @@ export function ImportPanel({ onImportSuccess }: ImportPanelProps) {
         </Card>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form>
         <div className="hidden">
           {/* Hidden form fields with defaults */}
           <Select
@@ -182,9 +226,10 @@ export function ImportPanel({ onImportSuccess }: ImportPanelProps) {
 
         <div className="mt-4 max-w-md mx-auto space-y-4">
           <Button
-            type="submit"
+            type="button"
             className="w-full bg-[#FF7846] hover:bg-[#FF5A2D] transition-colors py-6 text-lg"
             disabled={importing}
+            onClick={handleConnectInstagram}
           >
             {importing ? (
               <>
