@@ -8,12 +8,13 @@ import { PreviewPanel } from "./preview-panel";
 import { SiInstagram, SiYoutube, SiTiktok } from "react-icons/si";
 import { ArrowRight, Check } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { axiosInstance } from "@/lib/queryClient";
 
 interface Transformation {
   id: number;
   contentId: number;
   targetPlatform: string;
-  status: 'queued' | 'processing' | 'completed' | 'failed';
+  status: 'queued' | 'Pending' | 'completed' | 'failed';
   progress: number;
   outputUrl?: string;
   transformationOptions?: {
@@ -43,7 +44,6 @@ export function TransformationWorkflow({
   const [activeStep, setActiveStep] = useState(1);
   const [lastCompletedStep, setLastCompletedStep] = useState(0);
   const [selectedContentIds, setSelectedContentIds] = useState<number[]>([]);
-  const reelsStr = localStorage.getItem("instagramReels");
   // Custom reset handler that will go back to content selection (step 2)
   const handleResetAndGoBack = () => {
     // First call the parent's onReset to clear the transformation selection
@@ -55,51 +55,40 @@ export function TransformationWorkflow({
     youtube: false,
     tiktok: false
   });
-  const [selectedDestination, setSelectedDestination] = useState<"YouTube Shorts" | "TikTok" | null>(null);
+  const [selectedDestination, setSelectedDestination] = useState<"YouTube" | "TikTok" | null>(null);
   
   // Fetch transformations to auto-select completed ones
   const { data: transformations = [] } = useQuery<Transformation[]>({
-    queryKey: ['/api/transformations'],
+    queryKey: ['/api/MediaTransformation'],
+    // queryFn: async () => {
+    //   // const response = await fetch('/api/MediaTransformation');
+    //   const response = await axiosInstance.get('/MediaTransformation?page=1&pageSize=10');
+    //   if (response.status !== 200) {
+    //     throw new Error('Failed to fetch transformations');
+    //   }
+    //   return response.data;
+    // },
     // refetchInterval: 1000 // Check for updates every second to make progress updates more responsive
   });
-  
-  // Fetch reels from React Query store
-  const { data: reels = [] } = useQuery<any[]>({
-    queryKey: ['/api/content'],
-  });
-  
+
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    // Always sync reels from localStorage to React Query
-    if (reelsStr) {
-      try {
-        const reels = JSON.parse(reelsStr);
-        if (Array.isArray(reels) && reels.length > 0) {
-          queryClient.setQueryData(["/api/content"], reels);
-        }
-      } catch (e) {
-        // Ignore parse errors
-      }
-    }
-
-    // Then handle step logic
-    const selectedContentIds = localStorage.getItem("selectedContentIds");
-    if (selectedContentIds) {
-      setSelectedContentIds(JSON.parse(selectedContentIds));
-      setLastCompletedStep(2);
-      setActiveStep(3);
-    } else if (reelsStr) {
-      setLastCompletedStep(1);
-      setActiveStep(2);
-    }
+    localStorage.removeItem("instagramAccountIds");
+    localStorage.removeItem("instagramReels");
+    localStorage.removeItem("instagram_auth_data");
+    queryClient.removeQueries({ queryKey: ["/api/content"] });
+    setActiveStep(1);
+    setLastCompletedStep(0);
+    setSelectedContentIds([]);
   }, []);
 
   // Auto-select the latest transformation (in-progress or completed) for preview if none is selected
   useEffect(() => {
+    // console.log(">>>>transformations", transformations, "selectedTransformationId", selectedTransformationId);
     if (activeStep === 4 && !selectedTransformationId && transformations.length > 0) {
       // First try to find any processing transformations
-      const processingTransformations = transformations.filter(t => t.status === 'processing');
+      const processingTransformations = transformations.filter(t => t.status === "Pending");
       
       if (processingTransformations.length > 0) {
         // Select the most recent processing transformation to show progress
@@ -145,7 +134,7 @@ export function TransformationWorkflow({
     setPlatformConnections(prev => ({...prev, [platform]: isConnected}));
   };
   
-  const handleDestinationSelect = (platform: "YouTube Shorts" | "TikTok", contentIds: number[]) => {
+  const handleDestinationSelect = (platform: "YouTube" | "TikTok", contentIds: number[]) => {
     setSelectedDestination(platform);
     setSelectedContentIds(contentIds);
     handleContinue(); // Move to transformation step
@@ -247,7 +236,7 @@ export function TransformationWorkflow({
                     {platformConnections.youtube ? (
                       <Button 
                         className="flex-1 bg-[#FF7846] hover:bg-[#FF5A2D]"
-                        onClick={() => handleDestinationSelect("YouTube Shorts", selectedContentIds)}
+                        onClick={() => handleDestinationSelect("YouTube", selectedContentIds)}
                       >
                         Select as Destination
                       </Button>
@@ -334,14 +323,14 @@ export function TransformationWorkflow({
                   </div>
                   <ArrowRight className="w-4 h-4 mx-2 text-gray-400" />
                   <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                    {selectedDestination === "YouTube Shorts" ? (
+                    {selectedDestination === "YouTube" ? (
                       <SiYoutube className="w-4 h-4 text-red-600" />
                     ) : (
                       <SiTiktok className="w-4 h-4 text-black" />
                     )}
                   </div>
                   <h3 className="ml-3 text-lg font-semibold text-gray-900">
-                    {selectedDestination === "YouTube Shorts" ? 'Instagram → YouTube Shorts' : 'Instagram → TikTok'}
+                    {selectedDestination === "YouTube" ? 'Instagram → YouTube' : 'Instagram → TikTok'}
                   </h3>
                 </div>
                 <div className="mb-4 text-sm">
@@ -350,7 +339,7 @@ export function TransformationWorkflow({
                 </div>
                 <TransformationPanel 
                   onTransformSuccess={onTransformSuccess} 
-                  selectedDestination={selectedDestination as "YouTube Shorts" | "TikTok"} 
+                  selectedDestination={selectedDestination as "YouTube" | "TikTok"} 
                   selectedContentIds={selectedContentIds}
                 />
               </div>

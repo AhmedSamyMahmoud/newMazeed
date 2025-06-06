@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Header } from "../../components/header";
 import { Footer } from "../../components/footer";
-// import { TransformationQueue } from "@/components/dashboard/transformation-queue";
+import { TransformationQueue } from "@/components/dashboard/transformation-queue";
 import { PerformanceInsights } from "../../components/dashboard/performance-insights";
 import { TransformationWorkflow } from "../../components/dashboard/transformation-workflow";
 import { withAuthManager } from "../../HOCs/authManager";
@@ -60,8 +60,10 @@ const Home = () => {
             onReset={handleReset}
           />
 
-            <div className="space-y-8 mt-12">
-            {/* <TransformationQueue onSelectTransformation={handleSelectTransformation} /> */}
+          <div className="space-y-8 mt-12">
+            <TransformationQueue
+              onSelectTransformation={handleSelectTransformation}
+            />
             <PerformanceInsights />
           </div>
         </div>

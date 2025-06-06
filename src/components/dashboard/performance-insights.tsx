@@ -24,7 +24,7 @@ export function PerformanceInsights() {
     estimatedRevenueBoost: 1245,
     platformComparison: [
       { platform: "Instagram", views: 145000, engagement: 4.2 },
-      { platform: "YouTube Shorts", views: 210000, engagement: 5.8 },
+      { platform: "YouTube", views: 210000, engagement: 5.8 },
       { platform: "TikTok", views: 180000, engagement: 6.1 },
     ],
   };

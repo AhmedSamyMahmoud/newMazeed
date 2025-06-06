@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import axios from "axios";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -7,21 +8,50 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest(
-  method: string,
-  url: string,
-  data?: unknown | undefined,
-): Promise<Response> {
-  const res = await fetch(url, {
-    method,
-    headers: data ? { "Content-Type": "application/json" } : {},
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
-  });
-
-  await throwIfResNotOk(res);
-  return res;
+function isTokenExpired() {
+  const expiresAt = JSON.parse(
+    localStorage.getItem("token") || "null"
+  )?.expiresAt;
+  return Date.now() >= new Date(expiresAt).getTime();
 }
+
+const token = JSON.parse(localStorage.getItem("token") || "null")?.accessToken;
+
+export const axiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL,
+  headers: {
+    "Content-Type": "application/json",
+    accept: "text/plain",
+  },
+});
+
+axiosInstance.interceptors.request.use(async (config) => {
+  config.headers.Authorization = `Bearer ${token}`;
+  if (isTokenExpired()) {
+    try {
+      const response = await axios.post(
+        "https://api.mazeed.ai/api/Auth/refresh-token",
+        {
+          refreshToken: JSON.parse(localStorage.getItem("token") || "{}")
+            ?.refreshToken,
+        }
+      );
+      if (response.status === 200) {
+        localStorage.removeItem("token");
+        localStorage.setItem("token", JSON.stringify(response.data));
+        config.headers.Authorization = `Bearer ${response.data.accessToken}`;
+      } else {
+        localStorage.clear();
+        window.location.href = "/login";
+      }
+    } catch (error) {
+      console.log("Refresh token error:", error);
+      localStorage.clear();
+      window.location.href = "/login";
+    }
+  }
+  return config;
+});
 
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
