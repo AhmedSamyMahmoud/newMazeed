@@ -186,9 +186,16 @@ export function TransformationQueue({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => {
-                  refetch();
+                onClick={async () => {
+                  const result = await refetch();
                   setLastUpdated(new Date());
+                  if (!result.error) {
+                    showToast({
+                      title: "Success",
+                      message: "Transformations fetched successfully",
+                      type: "success",
+                    });
+                  }
                 }}
                 className="h-8 w-8"
               >
@@ -213,6 +220,9 @@ export function TransformationQueue({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+         <span className="absolute right-22 mb-1 text-xs text-gray-500 w-[160px]">
+            Last updated: {lastUpdated.toLocaleTimeString()}
+          </span>
       </CardHeader>
       <CardContent className="px-6 py-5">
         {isLoading ? (
