@@ -143,11 +143,29 @@ export function TransformationWorkflow({
   return (
     <div className="mb-8">
       {/* Step indicators */}
-      <div className="flex items-center justify-between max-w-5xl mx-auto mb-8">
+      <div className="flex items-center justify-between max-w-5xl mx-auto mb-8 relative">
+        {/* Connecting lines */}
+        <div className="absolute top-5 left-0 right-0 flex justify-between px-10 pointer-events-none">
+          {[1, 2, 3].map((step) => (
+            <div
+              key={`line-${step}`}
+              style={{
+                width: step === 1 ? '80%' : '100%',
+              }}
+              className={`h-0.5 w-full ${
+                step < activeStep || lastCompletedStep >= step + 1
+                  ? 'bg-[#FF7846]'
+                  : 'bg-gray-200'
+              }`}
+            />
+          ))}
+        </div>
+
+        {/* Step indicators */}
         {[1, 2, 3, 4].map((step) => (
           <div 
             key={step} 
-            className="flex flex-col items-center cursor-pointer"
+            className="flex flex-col items-center cursor-pointer relative z-10"
             onClick={() => handleStepClick(step)}
           >
             <div 

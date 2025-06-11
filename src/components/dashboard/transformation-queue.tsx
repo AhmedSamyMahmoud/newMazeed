@@ -7,6 +7,12 @@ import { Progress } from "../ui/progress";
 import { Loader2 } from "lucide-react";
 import { ToasterContext } from "../../helpers/toasterProvider";
 import { axiosInstance } from "@/lib/queryClient";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 
 interface Transformation {
   jobId: number;
@@ -174,9 +180,39 @@ export function TransformationQueue({
           </svg>
           Transformation Queue
         </CardTitle>
-        <span className="text-sm text-gray-500">
-          Last updated: {formatTimeAgo(lastUpdated.toISOString())}
-        </span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  refetch();
+                  setLastUpdated(new Date());
+                }}
+                className="h-8 w-8"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 text-gray-500 hover:text-primary-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Refetch transformations</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </CardHeader>
       <CardContent className="px-6 py-5">
         {isLoading ? (
@@ -290,7 +326,7 @@ export function TransformationQueue({
                               Queued
                             </span>
                           )}
-                          {transformation.status === "failed" && (
+                          {transformation.status === "Failed" && (
                             <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
                               Failed
                             </span>
