@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ImportPanel } from "./import-panel";
@@ -9,6 +9,8 @@ import { SiInstagram, SiYoutube, SiTiktok } from "react-icons/si";
 import { ArrowRight, Check } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { axiosInstance } from "@/lib/queryClient";
+import { useAuth } from "@/apis/auth";
+import { ToasterContext } from "@/helpers/toasterProvider";
 
 interface Transformation {
   id: number;
@@ -44,6 +46,7 @@ export function TransformationWorkflow({
   const [activeStep, setActiveStep] = useState(1);
   const [lastCompletedStep, setLastCompletedStep] = useState(0);
   const [selectedContentIds, setSelectedContentIds] = useState<number[]>([]);
+  const { token } = useAuth();
   // Custom reset handler that will go back to content selection (step 2)
   const handleResetAndGoBack = () => {
     // First call the parent's onReset to clear the transformation selection
@@ -72,6 +75,7 @@ export function TransformationWorkflow({
   });
 
   const queryClient = useQueryClient();
+  const { showToast } = useContext(ToasterContext);
 
   useEffect(() => {
     localStorage.removeItem("instagramAccountIds");
@@ -138,6 +142,66 @@ export function TransformationWorkflow({
     setSelectedDestination(platform);
     setSelectedContentIds(contentIds);
     handleContinue(); // Move to transformation step
+  };
+
+  const handleYouTubeConnect = async () => {
+      try {
+        const width = 600;
+        const height = 700;
+        const left = window.screen.width / 2 - width / 2;
+        const top = window.screen.height / 2 - height / 2;
+  
+        const popup = window.open(
+          `https://api.mazeed.ai/api/Youtube/connect?user_id=${token.userId}`,
+          "Instagram Authentication",
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
+  
+        // Check if popup was blocked
+        if (!popup || popup.closed || typeof popup.closed === "undefined") {
+          throw new Error(
+            "Popup was blocked. Please allow popups for this site."
+          );
+        }
+  
+        // Start checking if popup is closed
+        const checkPopupClosed = setInterval(() => {
+          if (!popup || popup.closed) {
+            clearInterval(checkPopupClosed);
+            setPlatformConnections(prev => ({...prev, youtube: true}));
+          }
+        }, 1000);
+      } catch (err) {
+        console.error("Error opening popup:", err);
+      }
+    };
+
+  const handleTikTokConnect = async () => {
+    try {
+      const width = 600;
+      const height = 700;
+      const left = window.screen.width / 2 - width / 2;
+      const top = window.screen.height / 2 - height / 2;
+  
+      const popup = window.open(
+        `https://api.mazeed.ai/api/TikTok/connect?user_id=${token.userId}`,
+        "Instagram Authentication",
+        `width=${width},height=${height},left=${left},top=${top}`
+      );
+      if (!popup || popup.closed || typeof popup.closed === "undefined") {
+        throw new Error(
+          "Popup was blocked. Please allow popups for this site."
+        );
+      }
+      const checkPopupClosed = setInterval(() => {
+        if (!popup || popup.closed) {
+          clearInterval(checkPopupClosed);
+          setPlatformConnections(prev => ({...prev, tiktok: true}));
+        }
+      }, 1000);
+    } catch (err) {
+      console.error("Error opening popup:", err);
+    }
   };
 
   return (
@@ -245,7 +309,7 @@ export function TransformationWorkflow({
                           : "border-red-600 text-red-600 hover:bg-red-50"
                       }`}
                       disabled={platformConnections.youtube}
-                      onClick={() => handlePlatformConnect("youtube", true)}
+                      onClick={handleYouTubeConnect}
                     >
                       <SiYoutube className="mr-2 h-4 w-4" />
                       {platformConnections.youtube ? "Connected" : "Connect YouTube"}
@@ -298,7 +362,7 @@ export function TransformationWorkflow({
                           : "border-black text-black hover:bg-gray-50"
                       }`}
                       disabled={platformConnections.tiktok}
-                      onClick={() => handlePlatformConnect("tiktok", true)}
+                      onClick={handleTikTokConnect}
                     >
                       <SiTiktok className="mr-2 h-4 w-4" />
                       {platformConnections.tiktok ? "Connected" : "Connect TikTok"}

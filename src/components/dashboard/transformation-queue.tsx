@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 // import { apiRequest } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
@@ -39,6 +39,7 @@ export function TransformationQueue({
   onSelectTransformation,
 }: TransformationQueueProps) {
   const { showToast } = useContext(ToasterContext);
+  const queryClient = useQueryClient();
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 5;
@@ -73,22 +74,27 @@ export function TransformationQueue({
   });
 
   // Setup polling for in-progress transformations
-  //   useEffect(() => {
-  //     let intervalId: NodeJS.Timeout;
+  useEffect(() => {
+    let intervalId: NodeJS.Timeout;
 
-  //     if (
-  //       transformations?.some((t: Transformation) => t.status === "processing")
-  //     ) {
-  //       intervalId = setInterval(() => {
-  //         refetch();
-  //         setLastUpdated(new Date());
-  //       }, 5000); // Poll every 5 seconds
-  //     }
+    if (
+      transformations?.some(
+        (t: Transformation) =>
+          t.status === "Pending" ||
+          t.status === "processing" ||
+          t.status === "queued"
+      )
+    ) {
+      intervalId = setInterval(() => {
+        refetch();
+        setLastUpdated(new Date());
+      }, 5000); // Poll every 5 seconds
+    }
 
-  //     return () => {
-  //       if (intervalId) clearInterval(intervalId);
-  //     };
-  //   }, [transformations, refetch]);
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [transformations, refetch]);
 
   // Fetch content items for the transformations
   //   const { data: contentItems = [] } = useQuery({
@@ -105,7 +111,12 @@ export function TransformationQueue({
   const handleCancel = async (id: number) => {
     try {
       await axiosInstance.delete(`/MediaTransformation/${id}`);
-      refetch();
+
+      // Invalidate all transformation queries to refresh the data
+      queryClient.invalidateQueries({
+        queryKey: ["/api/transformations"],
+      });
+
       showToast({
         title: "Transformation cancelled",
         message: "The transformation has been removed from the queue.",
@@ -162,7 +173,7 @@ export function TransformationQueue({
 
   return (
     <Card className="mb-6">
-      <CardHeader className="bg-gray-50 border-b border-gray-200 flex flex-row justify-between items-center px-6 py-5">
+      <CardHeader className="bg-gray-50 border-b border-gray-200 flex flex-row justify-between relative items-center px-6 py-5">
         <CardTitle className="text-lg font-medium text-gray-900 flex items-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -187,15 +198,16 @@ export function TransformationQueue({
                 variant="ghost"
                 size="icon"
                 onClick={async () => {
-                  const result = await refetch();
+                  // Invalidate all transformation queries to refresh the data
+                  await queryClient.invalidateQueries({
+                    queryKey: ["/api/transformations"],
+                  });
                   setLastUpdated(new Date());
-                  if (!result.error) {
-                    showToast({
-                      title: "Success",
-                      message: "Transformations fetched successfully",
-                      type: "success",
-                    });
-                  }
+                  showToast({
+                    title: "Success",
+                    message: "Transformations refreshed successfully",
+                    type: "success",
+                  });
                 }}
                 className="h-8 w-8"
               >
@@ -220,9 +232,9 @@ export function TransformationQueue({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-         <span className="absolute right-22 mb-1 text-xs text-gray-500 w-[160px]">
-            Last updated: {lastUpdated.toLocaleTimeString()}
-          </span>
+        <span className="absolute right-14 mb-1 text-xs text-gray-500 w-[160px]">
+          Last updated: {lastUpdated.toLocaleTimeString()}
+        </span>
       </CardHeader>
       <CardContent className="px-6 py-5">
         {isLoading ? (
@@ -371,7 +383,7 @@ export function TransformationQueue({
                             <Button
                               variant="link"
                               className="text-red-600 hover:text-red-900 p-0 h-auto"
-                              // onClick={() => handleCancel(transformation.id)}
+                              onClick={() => handleCancel(transformation.jobId)}
                             >
                               Cancel
                             </Button>

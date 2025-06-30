@@ -10,6 +10,14 @@ import { Loader2 } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { SiYoutube, SiTiktok } from "react-icons/si";
 import { axiosInstance } from "@/lib/queryClient";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ContentItem {
   Caption: string;
@@ -70,6 +78,7 @@ export function TransformationPanel({
       branding: false,
       optimizeTitles: true,
     });
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false);
 
   // Fetch content items from API
   const { data: contentItems = [], isLoading } = useQuery<ContentItem[]>({
@@ -120,45 +129,38 @@ export function TransformationPanel({
       return response;
     },
     onSuccess: (response) => {
-      queryClient.setQueryData(
-        ["/api/transformations"],
-        [...transformations, response.data]
-      );
-      onTransformSuccess(response.data.jobId);
-      // Get the last created transformation ID for preview
-      // if (response) {
-      //   const lastTransformation = transformations[transformations.length - 1];
-      //   console.log("Using transformation for preview:", lastTransformation);
-
-      //   showToast({
-      //     title: "Transformation started",
-      //     message:
-      //       "Your content is being transformed. You can view progress in the preview panel.",
-      //     type: "success",
-      //   });
-
-      //   // Pass the latest transformation ID to the success handler
-      //   // if (lastTransformation && lastTransformation.id) {
-      //   //   console.log("Passing transformation ID to success handler:", lastTransformation.id);
-      //   //   onTransformSuccess(lastTransformation.id);
-      //   // } else {
-      //   //   console.log("No transformation ID found, calling success handler without ID");
-      //   //   onTransformSuccess();
-      //   // }
-      // } else {
-      //   console.log(
-      //     "No transformations created, calling success handler without ID"
-      //   );
-      //   onTransformSuccess();
-      // }
-    },
-    onError: (error) => {
-      console.error("Transformation error:", error);
-      showToast({
-        title: "Transformation failed",
-        message: "Failed to start transformation. Please try again.",
-        type: "error",
+      // Invalidate the transformation queue to trigger a refetch
+      queryClient.invalidateQueries({
+        queryKey: ["/api/transformations"],
       });
+
+      // Also invalidate any paginated queries
+      queryClient.invalidateQueries({
+        queryKey: ["/api/transformations", 1],
+      });
+
+      onTransformSuccess(response.data.jobId);
+
+      showToast({
+        title: "Transformation started",
+        message:
+          "Your content is being transformed. You can view progress in the transformation queue.",
+        type: "success",
+      });
+    },
+    onError: (error: any) => {
+      console.error("Transformation error:", error);
+      if (
+        error?.response?.data == "User has reached their transformation limit"
+      ) {
+        setShowUpgradeDialog(true);
+      } else {
+        showToast({
+          title: "Transformation failed",
+          message: "Failed to start transformation. Please try again.",
+          type: "error",
+        });
+      }
     },
   });
   // console.log(isError);
@@ -185,6 +187,12 @@ export function TransformationPanel({
     });
   };
 
+  const handleUpgrade = () => {
+    setShowUpgradeDialog(false);
+    // Navigate to plans page - you'll need to implement this navigation
+    window.location.href = "/plans"; // or use your router navigation
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -204,36 +212,13 @@ export function TransformationPanel({
   };
 
   return (
-    <Card>
-      <CardHeader className="bg-gray-50 border-b border-gray-200">
-        <CardTitle className="text-lg font-medium text-gray-900 flex items-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 mr-2 text-primary-600"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-            />
-          </svg>
-          Transform Content
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-6 py-5">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-10">
-            <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
-          </div>
-        ) : contentItems?.length === 0 ? (
-          <div className="text-center py-12">
+    <>
+      <Card>
+        <CardHeader className="bg-gray-50 border-b border-gray-200">
+          <CardTitle className="text-lg font-medium text-gray-900 flex items-center">
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="h-5 w-5 mr-2 text-primary-600"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -242,248 +227,294 @@ export function TransformationPanel({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
               />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
-              No content imported
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Import content from Instagram to start transforming.
-            </p>
-          </div>
-        ) : (
-          <div>
-            {contentItems
-              .filter(
-                (item) =>
-                  !selectedContentIds?.length ||
-                  selectedContentIds.includes(item.Id)
-              )
-              .map((item: ContentItem) => (
-                <div
-                  key={item.Id}
-                  className="flex items-center justify-between py-3 border-b border-gray-200"
-                >
-                  <div className="flex items-center">
-                    <div className="h-10 w-10 flex-shrink-0 bg-gray-200 rounded overflow-hidden">
-                      <img
-                        src={item.ThumbnailUrl}
-                        alt={item.Caption}
-                        className="h-full w-full object-cover"
-                        onError={(e) => {
-                          // Fallback to placeholder if image fails to load
-                          (e.target as HTMLImageElement).src =
-                            "https://placehold.co/80x80/gray/white?text=No+Image";
-                        }}
+            Transform Content
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-6 py-5">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+            </div>
+          ) : contentItems?.length === 0 ? (
+            <div className="text-center py-12">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="mx-auto h-12 w-12 text-gray-400"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
+              </svg>
+              <h3 className="mt-2 text-sm font-medium text-gray-900">
+                No content imported
+              </h3>
+              <p className="mt-1 text-sm text-gray-500">
+                Import content from Instagram to start transforming.
+              </p>
+            </div>
+          ) : (
+            <div>
+              {contentItems
+                .filter(
+                  (item) =>
+                    !selectedContentIds?.length ||
+                    selectedContentIds.includes(item.Id)
+                )
+                .map((item: ContentItem) => (
+                  <div
+                    key={item.Id}
+                    className="flex items-center justify-between py-3 border-b border-gray-200"
+                  >
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 flex-shrink-0 bg-gray-200 rounded overflow-hidden">
+                        <img
+                          src={item.ThumbnailUrl}
+                          alt={item.Caption}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            // Fallback to placeholder if image fails to load
+                            (e.target as HTMLImageElement).src =
+                              "https://placehold.co/80x80/gray/white?text=No+Image";
+                          }}
+                        />
+                      </div>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-900">
+                          {item.Caption}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatViewCount(item.PlayCount)} views •{" "}
+                          {formatDate(item.PublishedAt)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center">
+                      <Checkbox
+                        id={`item-${item.Id}`}
+                        checked={selectedItems.includes(item.Id)}
+                        onCheckedChange={() => handleToggleItem(item.Id)}
                       />
                     </div>
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-900 truncate">
-                        {item.Caption}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {formatViewCount(item.PlayCount)} views •{" "}
-                        {formatDate(item.PublishedAt)}
-                      </p>
+                  </div>
+                ))}
+
+              {!selectedDestination && (
+                <div className="mt-6 mb-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-4">
+                    Destination Platform
+                  </h4>
+
+                  <RadioGroup
+                    value={targetPlatform}
+                    onValueChange={(value) =>
+                      setTargetPlatform(value as "YouTube" | "TikTok")
+                    }
+                    className="flex flex-col space-y-4"
+                  >
+                    <div className="flex items-start space-x-4">
+                      <RadioGroupItem
+                        value="YouTube"
+                        id="youtube-shorts"
+                        className="mt-1"
+                      />
+                      <div
+                        className="flex-1 border rounded-lg p-4 cursor-pointer hover:border-primary transition-colors"
+                        onClick={() => setTargetPlatform("YouTube")}
+                      >
+                        <div className="flex items-center">
+                          <SiYoutube className="h-5 w-5 text-red-600 mr-2" />
+                          <Label
+                            htmlFor="youtube-shorts"
+                            className="font-medium cursor-pointer"
+                          >
+                            YouTube Shorts
+                          </Label>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Optimize your content for YouTube Shorts vertical
+                          video format with auto-captions
+                        </p>
+                      </div>
                     </div>
+
+                    <div className="flex items-start space-x-4">
+                      <RadioGroupItem
+                        value="TikTok"
+                        id="tiktok"
+                        className="mt-1"
+                      />
+                      <div
+                        className="flex-1 border rounded-lg p-4 cursor-pointer hover:border-primary transition-colors"
+                        onClick={() => setTargetPlatform("TikTok")}
+                      >
+                        <div className="flex items-center">
+                          <SiTiktok className="h-5 w-5 text-black mr-2" />
+                          <Label
+                            htmlFor="tiktok"
+                            className="font-medium cursor-pointer"
+                          >
+                            TikTok
+                          </Label>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-2">
+                          Optimize your content for TikTok with trending sounds
+                          and effects
+                        </p>
+                      </div>
+                    </div>
+                  </RadioGroup>
+                </div>
+              )}
+
+              {selectedDestination && (
+                <div className="mt-6 mb-6">
+                  <h4 className="text-sm font-medium text-gray-900 mb-3">
+                    Selected Destination
+                  </h4>
+                  <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                    {targetPlatform === "YouTube" ? (
+                      <SiYoutube className="h-5 w-5 text-red-600 mr-2" />
+                    ) : (
+                      <SiTiktok className="h-5 w-5 text-black mr-2" />
+                    )}
+                    <span className="font-medium">{targetPlatform}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">
+                  Transformation Options
+                </h4>
+
+                <div className="space-y-3">
+                  <div className="flex items-center">
+                    <Checkbox
+                      id="aspect-ratio"
+                      checked={transformationOptions.aspectRatio}
+                      onCheckedChange={(checked) =>
+                        setTransformationOptions((prev) => ({
+                          ...prev,
+                          aspectRatio: !!checked,
+                        }))
+                      }
+                    />
+                    <Label
+                      htmlFor="aspect-ratio"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      Adjust aspect ratio for {targetPlatform} (9:16)
+                    </Label>
                   </div>
                   <div className="flex items-center">
                     <Checkbox
-                      id={`item-${item.Id}`}
-                      checked={selectedItems.includes(item.Id)}
-                      onCheckedChange={() => handleToggleItem(item.Id)}
+                      id="auto-caption"
+                      checked={transformationOptions.autoCaption}
+                      onCheckedChange={(checked) =>
+                        setTransformationOptions((prev) => ({
+                          ...prev,
+                          autoCaption: !!checked,
+                        }))
+                      }
                     />
+                    <Label
+                      htmlFor="auto-caption"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      Generate auto captions
+                    </Label>
+                  </div>
+                  <div className="flex items-center">
+                    <Checkbox
+                      id="add-branding"
+                      checked={transformationOptions.branding}
+                      onCheckedChange={(checked) =>
+                        setTransformationOptions((prev) => ({
+                          ...prev,
+                          branding: !!checked,
+                        }))
+                      }
+                    />
+                    <Label
+                      htmlFor="add-branding"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      Add branding watermark
+                    </Label>
+                  </div>
+                  <div className="flex items-center">
+                    <Checkbox
+                      id="optimize-titles"
+                      checked={transformationOptions.optimizeTitles}
+                      onCheckedChange={(checked) =>
+                        setTransformationOptions((prev) => ({
+                          ...prev,
+                          optimizeTitles: !!checked,
+                        }))
+                      }
+                    />
+                    <Label
+                      htmlFor="optimize-titles"
+                      className="ml-2 text-sm text-gray-700"
+                    >
+                      Optimize titles for{" "}
+                      {targetPlatform === "YouTube" ? "YouTube" : "TikTok"}{" "}
+                      algorithm
+                    </Label>
                   </div>
                 </div>
-              ))}
 
-            {!selectedDestination && (
-              <div className="mt-6 mb-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-4">
-                  Destination Platform
-                </h4>
-
-                <RadioGroup
-                  value={targetPlatform}
-                  onValueChange={(value) =>
-                    setTargetPlatform(value as "YouTube" | "TikTok")
+                <Button
+                  onClick={handleTransform}
+                  className="mt-5 w-full bg-[#FF7846] hover:bg-[#FF5A2D]"
+                  disabled={
+                    transformMutation.isPending || selectedItems.length === 0
                   }
-                  className="flex flex-col space-y-4"
                 >
-                  <div className="flex items-start space-x-4">
-                    <RadioGroupItem
-                      value="YouTube"
-                      id="youtube-shorts"
-                      className="mt-1"
-                    />
-                    <div
-                      className="flex-1 border rounded-lg p-4 cursor-pointer hover:border-primary transition-colors"
-                      onClick={() => setTargetPlatform("YouTube")}
-                    >
-                      <div className="flex items-center">
-                        <SiYoutube className="h-5 w-5 text-red-600 mr-2" />
-                        <Label
-                          htmlFor="youtube-shorts"
-                          className="font-medium cursor-pointer"
-                        >
-                          YouTube Shorts
-                        </Label>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-2">
-                        Optimize your content for YouTube Shorts vertical video
-                        format with auto-captions
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start space-x-4">
-                    <RadioGroupItem
-                      value="TikTok"
-                      id="tiktok"
-                      className="mt-1"
-                    />
-                    <div
-                      className="flex-1 border rounded-lg p-4 cursor-pointer hover:border-primary transition-colors"
-                      onClick={() => setTargetPlatform("TikTok")}
-                    >
-                      <div className="flex items-center">
-                        <SiTiktok className="h-5 w-5 text-black mr-2" />
-                        <Label
-                          htmlFor="tiktok"
-                          className="font-medium cursor-pointer"
-                        >
-                          TikTok
-                        </Label>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-2">
-                        Optimize your content for TikTok with trending sounds
-                        and effects
-                      </p>
-                    </div>
-                  </div>
-                </RadioGroup>
-              </div>
-            )}
-
-            {selectedDestination && (
-              <div className="mt-6 mb-6">
-                <h4 className="text-sm font-medium text-gray-900 mb-3">
-                  Selected Destination
-                </h4>
-                <div className="flex items-center p-3 bg-gray-50 rounded-lg">
-                  {targetPlatform === "YouTube" ? (
-                    <SiYoutube className="h-5 w-5 text-red-600 mr-2" />
+                  {transformMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Transforming...
+                    </>
                   ) : (
-                    <SiTiktok className="h-5 w-5 text-black mr-2" />
+                    "Transform Selected Content"
                   )}
-                  <span className="font-medium">{targetPlatform}</span>
-                </div>
+                </Button>
               </div>
-            )}
-
-            <div className="mt-6">
-              <h4 className="text-sm font-medium text-gray-900 mb-3">
-                Transformation Options
-              </h4>
-
-              <div className="space-y-3">
-                <div className="flex items-center">
-                  <Checkbox
-                    id="aspect-ratio"
-                    checked={transformationOptions.aspectRatio}
-                    onCheckedChange={(checked) =>
-                      setTransformationOptions((prev) => ({
-                        ...prev,
-                        aspectRatio: !!checked,
-                      }))
-                    }
-                  />
-                  <Label
-                    htmlFor="aspect-ratio"
-                    className="ml-2 text-sm text-gray-700"
-                  >
-                    Adjust aspect ratio for {targetPlatform} (9:16)
-                  </Label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="auto-caption"
-                    checked={transformationOptions.autoCaption}
-                    onCheckedChange={(checked) =>
-                      setTransformationOptions((prev) => ({
-                        ...prev,
-                        autoCaption: !!checked,
-                      }))
-                    }
-                  />
-                  <Label
-                    htmlFor="auto-caption"
-                    className="ml-2 text-sm text-gray-700"
-                  >
-                    Generate auto captions
-                  </Label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="add-branding"
-                    checked={transformationOptions.branding}
-                    onCheckedChange={(checked) =>
-                      setTransformationOptions((prev) => ({
-                        ...prev,
-                        branding: !!checked,
-                      }))
-                    }
-                  />
-                  <Label
-                    htmlFor="add-branding"
-                    className="ml-2 text-sm text-gray-700"
-                  >
-                    Add branding watermark
-                  </Label>
-                </div>
-                <div className="flex items-center">
-                  <Checkbox
-                    id="optimize-titles"
-                    checked={transformationOptions.optimizeTitles}
-                    onCheckedChange={(checked) =>
-                      setTransformationOptions((prev) => ({
-                        ...prev,
-                        optimizeTitles: !!checked,
-                      }))
-                    }
-                  />
-                  <Label
-                    htmlFor="optimize-titles"
-                    className="ml-2 text-sm text-gray-700"
-                  >
-                    Optimize titles for{" "}
-                    {targetPlatform === "YouTube" ? "YouTube" : "TikTok"}{" "}
-                    algorithm
-                  </Label>
-                </div>
-              </div>
-
-              <Button
-                onClick={handleTransform}
-                className="mt-5 w-full bg-[#FF7846] hover:bg-[#FF5A2D]"
-                disabled={
-                  transformMutation.isPending || selectedItems.length === 0
-                }
-              >
-                {transformMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Transforming...
-                  </>
-                ) : (
-                  "Transform Selected Content"
-                )}
-              </Button>
             </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Upgrade Dialog */}
+      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transformation Limit Reached</DialogTitle>
+            <DialogDescription>
+              You have reached your transformation limit. Please upgrade to a
+              paid plan to continue.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              onClick={handleUpgrade}
+              className="bg-[#FF7846] hover:bg-[#FF5A2D]"
+            >
+              Upgrade Now!
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
