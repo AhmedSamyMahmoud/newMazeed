@@ -114,6 +114,9 @@ export function TransformationWorkflow({
     if (step <= activeStep ||  lastCompletedStep + 1 >= step) {
       setActiveStep(step);
     }
+    if (selectedTransformationId) {
+      onReset()
+    }
   };
   
   const handleContinue = () => {

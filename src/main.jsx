@@ -17,7 +17,8 @@ import { ThemeProvider } from "./theme/ThemeProvider.tsx";
 import { ToastProvider } from "./helpers/toasterProvider.tsx";
 import ForgotPassword from "./pages/forgot-password/index.tsx";
 import ResetPassword from "./pages/reset-password/index.tsx";
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import Pricing from "./pages/plan/index.tsx";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 
 const router = createBrowserRouter([
   {
@@ -47,6 +48,10 @@ const router = createBrowserRouter([
   {
     path: "/reset-password",
     element: <ResetPassword />,
+  },
+  {
+    path: "/plans",
+    element: <Pricing />,
   },
 ]);
 

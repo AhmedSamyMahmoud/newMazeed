@@ -29,7 +29,11 @@ interface Transformation {
   publishedMediaId: string;
   publishStatus: string;
   sourceMediaUrl: string;
+  transformedMediaUrl: string;
   itemId: string;
+  title: string;
+  description: string;
+  caption: string;
 }
 
 interface PreviewPanelProps {
@@ -47,16 +51,25 @@ export function PreviewPanel({ transformationId, onReset }: PreviewPanelProps) {
   const [isUploading, setIsUploading] = useState(false);
 
   const getMediaTransformations = async (transformationId: number) => {
-    const res = await axiosInstance.get(
-      `/MediaTransformation/${transformationId}`
-    );
-    if (res.status === 200) {
-      const firstTransformedMedia = res.data?.items[0];
-      console.log("firstTransformedMedia", firstTransformedMedia);
-      if (firstTransformedMedia) {
-        setTransformedMedia(firstTransformedMedia);
+    try {
+      const res = await axiosInstance.get(
+        `/MediaTransformation/${transformationId}`
+      );
+      if (res.status === 200) {
+        const firstTransformedMedia = res.data?.items[0];
+        if (
+          firstTransformedMedia &&
+          firstTransformedMedia.transformedMediaUrl !== ""
+        ) {
+          setTransformedMedia(firstTransformedMedia);
+          setIsLoading(false);
+        } else {
+          setTimeout(() => {
+            getMediaTransformations(transformationId);
+          }, 2000);
+        }
       }
-    } else {
+    } catch (error) {
       showToast({
         title: "Error",
         message: "Failed to get media transformations",
@@ -67,7 +80,7 @@ export function PreviewPanel({ transformationId, onReset }: PreviewPanelProps) {
 
   useEffect(() => {
     if (transformationId) {
-      console.log("transformationId", transformationId);
+      setIsLoading(true);
       getMediaTransformations(transformationId);
     }
   }, [transformationId]);
@@ -84,10 +97,22 @@ export function PreviewPanel({ transformationId, onReset }: PreviewPanelProps) {
     return response.data;
   };
 
+  const uploadToYouTube = async (
+    userId: string,
+    channelId: string,
+    videos: { filePath: string; title: string; description: string }[]
+  ) => {
+    const response = await axiosInstance.post("/Youtube/upload-videos", {
+      channelId,
+      userId,
+      videos,
+    });
+    return response.data;
+  };
+
   const handleDownload = async () => {
     // Check for available media URLs - prefer transformed media over source media
-    const mediaUrl =
-      transformedMedia?.mediaUrl || transformedMedia?.sourceMediaUrl;
+    const mediaUrl = transformedMedia?.transformedMediaUrl;
 
     if (!mediaUrl) {
       showToast({
@@ -201,17 +226,32 @@ export function PreviewPanel({ transformationId, onReset }: PreviewPanelProps) {
 
     setIsUploading(true);
     try {
-      await uploadToTikTok(userId, [
-        {
-          id: transformedMedia?.itemId || String(transformedMedia.id),
-          url: transformedMedia.mediaUrl || transformedMedia.sourceMediaUrl,
-        },
-      ]);
-      showToast({
-        title: "Upload Successful",
-        message: "Your video has been uploaded to TikTok.",
-        type: "success",
-      });
+      if (transformedMedia.targetPlatform === "YouTube") {
+        await uploadToYouTube(userId, transformedMedia.itemId, [
+          {
+            filePath: transformedMedia.transformedMediaUrl,
+            title: "Transformed Content",
+            description: transformedMedia.caption,
+          },
+        ]);
+        showToast({
+          title: "Upload Successful",
+          message: "Your video has been uploaded to YouTube.",
+          type: "success",
+        });
+      } else {
+        await uploadToTikTok(userId, [
+          {
+            id: transformedMedia?.itemId,
+            url: transformedMedia.transformedMediaUrl,
+          },
+        ]);
+        showToast({
+          title: "Upload Successful",
+          message: "Your video has been uploaded to TikTok.",
+          type: "success",
+        });
+      }
     } catch (error) {
       showToast({
         title: "Upload Failed",
@@ -305,11 +345,7 @@ export function PreviewPanel({ transformationId, onReset }: PreviewPanelProps) {
               <div className="relative rounded-md overflow-hidden">
                 {/* Using a placeholder video since real transformation would require video processing */}
                 <VideoPlayer
-                  src={
-                    transformedMedia.mediaUrl ||
-                    transformedMedia.sourceMediaUrl ||
-                    "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4"
-                  }
+                  src={transformedMedia.transformedMediaUrl || ""}
                   poster={transformedMedia.thumbnailUrl || undefined}
                   aspectRatio="9:16"
                 />
